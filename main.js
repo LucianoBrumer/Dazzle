@@ -1,20 +1,3 @@
-class Player extends GameObject{
-    constructor(props){
-        super(props)
-    }
-    update(dt){
-        // console.log('update');
-        // game.camera = {x: this.x, y: this.y}
-        // console.log(game.camera);
-    }
-    keyDown(e){
-        if(e.key == 'd') this.x += 25
-        if(e.key == 'a') this.x -= 25
-        if(e.key == 'w') this.y -= 25
-        if(e.key == 's') this.y += 25
-    }
-}
-
 const game = new Game({
     background: '#aaa',
     load: game => {
@@ -23,13 +6,25 @@ const game = new Game({
     scenes: {
         main: new Scene({
             gameObjects: {
-                player: new Player({
+                player: new GameObject({
                     color: '#fff',
                     width: 50,
                     height: 50,
                     image : {
                         src: './images/dino1.png',
                         pixelated: true
+                    },
+                    load: current => {
+                        current.x = 25
+                    },
+                    keyDown: ({event, curent}) => {
+                        if(event.key == 'd') curent.x += 25
+                        if(event.key == 'a') curent.x -= 25
+                        if(event.key == 'w') curent.y -= 25
+                        if(event.key == 's') curent.y += 25
+                    },
+                    update: ({deltaTime, current, game, scene}) => {
+                        // current.y += .1
                     }
                 }),
                 cube: new GameObject({

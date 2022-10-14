@@ -60,6 +60,9 @@ class Game{
         }
 
         this.scenes = scenes
+        Object.entries(scenes).forEach(([key, value]) => {
+            this.scenes[key].game = this
+        })
         this.activeScene = activeScene
 
         document.body.innerHTML += `
@@ -118,7 +121,7 @@ class Game{
             this.currentFPS = 1000 / (now - lastTick)
             lastTick = now
 
-            // this.scenes[this.activeScene].update(deltaTime)
+            this.scenes[this.activeScene].update(deltaTime)
             callback.update(deltaTime)
 
             this.clear()
@@ -287,14 +290,15 @@ class Scene {
 
         load(this)
     }
+    update(dt){
+        Object.entries(this.gameObjects).forEach(([key, value]) => {
+            const current = this.gameObjects[key]
+            if(current.active) current.update({delataTime: dt, game: this.game, scene: this, current});
+        })
+    }
     render(ctx, camera){
         Object.entries(this.gameObjects).forEach(([key, value]) => {
             if(this.gameObjects[key].active && this.gameObjects[key].visible) this.gameObjects[key].render(ctx, camera);
-        })
-    }
-    update(dt){
-        Object.entries(this.gameObjects).forEach(([key, value]) => {
-            if(this.gameObjects[key].active) this.gameObjects[key].update(dt);
         })
     }
     reset(){
@@ -303,7 +307,7 @@ class Scene {
     }
     keyDownListener(e){
         Object.entries(this.gameObjects).forEach(([key, value]) => {
-            this.gameObjects[key].keyDown(e);
+            this.gameObjects[key].keyDown({event: e, curent: this.gameObjects[key]});
         })
         this.keyDown(e)
     }
@@ -352,7 +356,36 @@ class Scene {
 }
 
 class GameObject {
-    constructor({x = 0, y = 0, width = 10, height = 10, color = '#fff', image, active = true, visible = true, tags = [], load = () => {}}){
+    constructor({
+        x = 0,
+        y = 0,
+        width = 10,
+        height = 10,
+        color = '#fff',
+        image,
+        active = true,
+        visible = true,
+        tags = [],
+        keyUp = e => {},
+        keyDown = e => {},
+        mouseDown = e => {},
+        mouseUp = e => {},
+        mouseMove = e => {},
+        touchStart = e => {},
+        touchEnd = e => {},
+        touchMove = e => {},
+        load = () => {},
+        update = () => {},
+    }){
+        this.keyUp = keyUp
+        this.keyDown = keyDown
+        this.mouseDown = mouseDown
+        this.mouseUp = mouseUp
+        this.mouseMove = mouseMove
+        this.touchStart = touchStart
+        this.touchEnd = touchEnd
+        this.touchMove = touchMove
+
         this.x = x
         this.y = y
         this.width = width
@@ -373,7 +406,10 @@ class GameObject {
             img.style.width = '100px'
             this.image = {...image, element: img}
         }
+
         load(this)
+        this.load = load
+        this.update = update
     }
     render(ctx){
         if(this.visible){
@@ -384,15 +420,6 @@ class GameObject {
                 : ctx.fillRect(this.x, this.y, this.width, this.height)
         }
     }
-    update(){}
-    mouseDown(){}
-    mouseUp(){}
-    mouseMove(){}
-    keyUp(){}
-    keyDown(){}
-    touchEnd(){}
-    touchStart(){}
-    touchMove(){}
 }
 
 class TileMap {
