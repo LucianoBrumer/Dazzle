@@ -1,13 +1,12 @@
 const game = new Game({
-    background: '#aaa',
-    load: game => {
-        console.log(game);
-    },
+    backgroundColor: '#aaa',
+    cameraGameObjectFollow: 'player',
+    cameraGameObjectFollowDelay: 1,
     scenes: {
         main: new Scene({
             gameObjects: {
                 player: new GameObject({
-                    color: '#fff',
+                    color: '#000',
                     width: 50,
                     height: 50,
                     image : {
@@ -16,15 +15,22 @@ const game = new Game({
                     },
                     load: current => {
                         current.x = 25
+                        console.log('object load');
+                        // console.log(current.scene.game);
                     },
-                    keyDown: ({event, curent}) => {
-                        if(event.key == 'd') curent.x += 25
-                        if(event.key == 'a') curent.x -= 25
-                        if(event.key == 'w') curent.y -= 25
-                        if(event.key == 's') curent.y += 25
-                    },
-                    update: ({deltaTime, current, game, scene}) => {
+                    update: current => {
                         // current.y += .1
+                        // console.log('object update');
+                        // console.log(current.scene.game);
+                    },
+                    keyDown: ({event, current}) => {
+                        if(event.key == 'd') current.x += 25
+                        if(event.key == 'a') current.x -= 25
+                        if(event.key == 'w') current.y -= 25
+                        if(event.key == 's') current.y += 25
+                    },
+                    objectMouseDown: ({event, current}) => {
+                        console.log('HAY');
                     }
                 }),
                 cube: new GameObject({
@@ -34,25 +40,34 @@ const game = new Game({
                     tags: ['cubo']
                 }),
             },
+            load: current => {
+                console.log('scene load');
+                // current.game.backgroundColor = 'red'
+                // console.log(current.game);
+            },
+            update: current => {
+                // console.log('scene update');
+                // console.log(current.game);
+                // current.game.backgroundColor = 'red'
+                const player = current.gameObjects['player']
+            },
             keyDown: e => {
                 // console.log(e.key);
-            }
+            },
         })
     },
-    keyDown: async e => {
-        if(e.key == 'r') game.resetScene()
-        else if(e.key == 'p') game.removeGameObject('player')
-        else if(e.key == 'z') game.zoom -= .25
-        else if(e.key == 'x') game.zoom += .25
-        else if(e.key == 'o') game.setFullscreen(!game.fullScreen)
-    }
-})
-
-game.loop({
-    update: dt => {
-        const player = game.getGameObject('player')
-        game.cameraSmoothTarget(player, 50)
-        // game.cameraTarget(player)
+    load: current => {
+        console.log('game load');
+        // current.backgroundColor = 'blue'
     },
-    render: () => {}
+    update: current => {
+        // console.log('game update');
+    },
+    keyDown: ({event, current}) => {
+        if(event.key == 'r') current.resetScene()
+        else if(event.key == 'p') current.removeGameObject('player')
+        else if(event.key == 'z') current.zoom -= .25
+        else if(event.key == 'x') current.zoom += .25
+        else if(event.key == 'o') current.setFullscreen(!current.fullScreen)
+    },
 })

@@ -1,12 +1,24 @@
+document.body.innerHTML += `
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+    </style>
+`
+
 class Game{
     constructor({
         width = 500,
         height = 500,
         id = 'game',
-        background = '#fff',
+        backgroundColor = '#fff',
         cursor = true,
         fps = 60,
         disableContextMenu = true,
+        cameraGameObjectFollow,
+        cameraGameObjectFollowDelay = 1,
         fullWindow = false,
         fullScreen = false,
         activeScene = 'main',
@@ -20,8 +32,9 @@ class Game{
         touchEnd = e => {},
         touchMove = e => {},
         load = () => {},
+        render = () => {},
+        update = () => {}
     }){
-
         this.keyUp = keyUp
         this.keyDown = keyDown
         this.mouseDown = mouseDown
@@ -38,53 +51,25 @@ class Game{
         }
         this.ctx = this.cv.getContext("2d");
 
-        this.width = width;
-        this.height = height;
-        this.fullScreen = fullScreen;
-        this.zoom = 1
+        this.setSize(width, height)
 
-        this.cv.width = width;
-        this.cv.height = height;
-        this.cv.style.background = background;
+        this.fullScreen = fullScreen
+        if(fullScreen === true) this.setFullscreen(fullScreen)
+
+        this.setBackgroundColor(backgroundColor);
         this.setCursor(cursor);
 
         if(fullWindow) {
-            this.width = window.innerWidth,
-            this.height = window.innerHeight,
-            this.cv.width = window.innerWidth,
-            this.cv.height = window.innerHeight,
+            this.setSize(window.innerWidth, window.innerHeight)
             window.addEventListener('resize', () => {
                 this.setSize(window.innerWidth, window.innerHeight)
                 console.log(this.width, window.innerWidth);
             })
         }
 
-        this.scenes = scenes
-        Object.entries(scenes).forEach(([key, value]) => {
-            this.scenes[key].game = this
-        })
-        this.activeScene = activeScene
-
-        document.body.innerHTML += `
-            <style>
-                * {
-                    margin: 0;
-                    padding: 0;
-                    overflow: hidden;
-                    box-sizing: border-box;
-                }
-
-                .pixel-art {
-                    image-rendering: pixelated;
-                    image-rendering: -moz-crisp-edges;
-                    image-rendering: crisp-edges;
-                }
-            </style>
-        `
-
         this.fps = fps
 
-        this.camera = {x: this.width/2, y: this.height/2}
+        this.camera = {x: this.width/2, y: this.height/2, gameObjectFollow: cameraGameObjectFollow, gameObjectFollowDelay: cameraGameObjectFollowDelay}
 
         document.addEventListener("keydown", e => this.keyDownListener(e))
         document.addEventListener("keyup", e => this.keyUpListener(e))
@@ -102,27 +87,56 @@ class Game{
 
         if(!document.body.contains(this.cv)) document.body.appendChild(this.cv)
 
+        this.scenes = scenes
+        this.activeScene = activeScene
+
         load(this)
+        this.load = load
+        this.update = update
+        this.render = render
+
+        Object.entries(this.scenes).forEach(([key, value]) => {
+            const currentScene = this.scenes[key]
+            currentScene.game = this
+            currentScene.load(currentScene)
+
+            Object.entries(currentScene.gameObjects).forEach(([key, value]) => {
+                const currentObject = currentScene.gameObjects[key]
+                currentObject.scene = currentScene
+                currentObject.load(currentObject)
+            })
+        })
+
+        this.updateListener()
+
+        this.safeObject = cloneObject(this)
+    }
+
+    setBackgroundColor(backgroundColor){
+        this.backgroundColor = backgroundColor
+        this.cv.style.backgroundColor = backgroundColor
     }
 
     clear(){
         this.ctx.clearRect(0, 0, this.width, this.height);
     }
 
-    loop(callback = {update: () => {}, render: () => {}}){
-        this.loopCallback = callback
+    updateListener(){
 
-        let lastTick = Date.now()
-        let deltaTime = 0
+        this.lastTick = Date.now()
+        this.deltaTime = 0
 
         const loop = () => {
             const now = Date.now();
-            deltaTime = (now - lastTick)/1000;
-            this.currentFPS = 1000 / (now - lastTick)
-            lastTick = now
+            this.deltaTime = (now - this.lastTick)/1000;
+            this.currentFPS = 1000 / (now - this.lastTick)
+            this.lastTick = now
 
-            this.scenes[this.activeScene].update(deltaTime)
-            callback.update(deltaTime)
+
+            if(this.camera.gameObjectFollow) this.cameraTarget(this.getGameObject(this.camera.gameObjectFollow), this.camera.gameObjectFollowDelay)
+
+            this.scenes[this.activeScene].updateListener()
+            this.update(this)
 
             this.clear()
             this.ctx.save()
@@ -130,8 +144,9 @@ class Game{
 
             this.ctx.translate(-this.camera.x + this.width/2, -this.camera.y + this.width/2)
             // this.ctx.scale(this.zoom, this.zoom)
-            // callback.render()
-            this.scenes[this.activeScene].render(this.ctx, this.camera)
+
+            this.render(this)
+            this.scenes[this.activeScene].renderListener(this.ctx, this.camera)
 
             this.ctx.restore()
         }
@@ -153,22 +168,12 @@ class Game{
     setFPS(fps){
         clearInterval(this.loopInterval)
         this.fps = fps
-        this.loop(this.loopCallback)
+        this.updateListener()
     }
 
-    cameraTarget(target){
-        console.log(this.zoom);
-        this.camera = {
-            x: target.x,
-            y: target.y
-        }
-    }
-
-    cameraSmoothTarget(target, delay = 15){
-        this.camera = {
-            x: this.camera.x + ((target.x - this.camera.x) / delay),
-            y: this.camera.y + ((target.y - this.camera.y) / delay)
-        }
+    cameraTarget(target, delay = 1){
+        this.camera.x += (target.x - this.camera.x) / delay
+        this.camera.y += (target.y - this.camera.y) / delay
     }
 
     resetScene(){
@@ -216,50 +221,54 @@ class Game{
     setFullscreen(tmp = true){
         if(tmp === true){
             this.fullScreen = true
-            if (this.cv.requestFullscreen) {
-                this.cv.requestFullscreen()
-            } else if (this.cv.webkitRequestFullscreen) {
-                this.cv.webkitRequestFullscreen()
-            } else if (this.cv.msRequestFullscreen) {
-                this.cv.msRequestFullscreen()
-            }
+            try {
+                if (this.cv.requestFullscreen) {
+                    this.cv.requestFullscreen()
+                } else if (this.cv.webkitRequestFullscreen) {
+                    this.cv.webkitRequestFullscreen()
+                } else if (this.cv.msRequestFullscreen) {
+                    this.cv.msRequestFullscreen()
+                }
+            } catch (error) {}
         }else{
             this.fullScreen = false
-            document.exitFullscreen()
+            try {
+                document.exitFullscreen()
+            } catch (error) {;}
         }
     }
 
     mouseDownListener(e){
         this.scenes[this.activeScene].mouseDownListener(e)
-        this.mouseDown(e)
+        this.mouseDown({event: e, current: this})
     }
     mouseUpListener(e){
         this.scenes[this.activeScene].mouseUpListener(e)
-        this.mouseUp(e)
+        this.mouseUp({event: e, current: this})
     }
     mouseMoveListener(e){
         this.scenes[this.activeScene].mouseMoveListener(e)
-        this.mouseMove(e)
+        this.mouseMove({event: e, current: this})
     }
     keyDownListener(e){
         this.scenes[this.activeScene].keyDownListener(e)
-        this.keyDown(e)
+        this.keyDown({event: e, current: this})
     }
     keyUpListener(e){
         this.scenes[this.activeScene].keyUpListener(e)
-        this.keyUp(e)
+        this.keyUp({event: e, current: this})
     }
     touchStartListener(e){
         this.scenes[this.activeScene].touchStartListener(e)
-        this.touchStart(e)
+        this.touchStart({event: e, current: this})
     }
     touchEndListener(e){
         this.scenes[this.activeScene].touchEndListener(e)
-        this.touchEnd(e)
+        this.touchEnd({event: e, current: this})
     }
     touchMoveListener(e){
         this.scenes[this.activeScene].touchMoveListener(e)
-        this.touchMove(e)
+        this.touchMove({event: e, current: this})
     }
 }
 
@@ -274,7 +283,9 @@ class Scene {
         touchStart = e => {},
         touchEnd = e => {},
         touchMove = e => {},
-        load = () => {}
+        load = () => {},
+        render = () => {},
+        update = () => {}
     }){
         this.keyUp = keyUp
         this.keyDown = keyDown
@@ -288,17 +299,23 @@ class Scene {
         this.gameObjects = gameObjects
         this.lastGameObjects = cloneObject(gameObjects)
 
-        load(this)
+        this.load = load
+        this.update = update
+        this.render = render
+
+        this.safeObject = cloneObject(this)
     }
-    update(dt){
+    updateListener(){
         Object.entries(this.gameObjects).forEach(([key, value]) => {
             const current = this.gameObjects[key]
-            if(current.active) current.update({delataTime: dt, game: this.game, scene: this, current});
+            if(current.active) current.update(this);
         })
+        this.update(this)
     }
-    render(ctx, camera){
+    renderListener(){
         Object.entries(this.gameObjects).forEach(([key, value]) => {
-            if(this.gameObjects[key].active && this.gameObjects[key].visible) this.gameObjects[key].render(ctx, camera);
+            const current = this.gameObjects[key]
+            if(current.active && current.visible) current.render();
         })
     }
     reset(){
@@ -307,51 +324,65 @@ class Scene {
     }
     keyDownListener(e){
         Object.entries(this.gameObjects).forEach(([key, value]) => {
-            this.gameObjects[key].keyDown({event: e, curent: this.gameObjects[key]});
+            const current = this.gameObjects[key]
+            current.keyDown({event: e, current: current});
         })
-        this.keyDown(e)
+        this.keyDown({event: e, current: this});
     }
     keyUpListener(e){
         Object.entries(this.gameObjects).forEach(([key, value]) => {
-            this.gameObjects[key].keyUp(e);
+            const current = this.gameObjects[key]
+            current.keyUp({event: e, current});
         })
-        this.keyUp(e)
+        this.keyUp({event: e, current: this});
     }
     mouseDownListener(e){
         Object.entries(this.gameObjects).forEach(([key, value]) => {
-            this.gameObjects[key].mouseDown(e);
+            const current = this.gameObjects[key]
+            current.mouseDown({event: e, current});
+            if(isInside(this.game.getMouse, current)) current.objectMouseDown({event: e, current});
         })
-        this.mouseDown(e)
+        this.mouseDown({event: e, current: this});
     }
     mouseUpListener(e){
         Object.entries(this.gameObjects).forEach(([key, value]) => {
-            this.gameObjects[key].mouseUp(e);
+            const current = this.gameObjects[key]
+            current.mouseUp({event: e, current});
+            if(isInside(this.game.getMouse, current)) current.objectMouseUp({event: e, current});
         })
-        this.mouseUp(e)
+        this.mouseUp({event: e, current: this});
     }
     mouseMoveListener(e){
         Object.entries(this.gameObjects).forEach(([key, value]) => {
-            this.gameObjects[key].mouseMove(e);
+            const current = this.gameObjects[key]
+            current.mouseMove({event: e, current});
+            if(isInside(this.game.getMouse, current)) current.objectMouseMove({event: e, current});
         })
-        this.mouseMove(e)
+        this.mouseMove({event: e, current: this});
     }
     touchStartListener(e){
         Object.entries(this.gameObjects).forEach(([key, value]) => {
-            this.gameObjects[key].touchStart(e);
+            const current = this.gameObjects[key]
+            current.touchStart({event: e, current});
+            // current.objectTouchStart({event: e, current});
         })
-        this.touchStart(e)
+        this.touchStart({event: e, current: this});
     }
     touchEndListener(e){
         Object.entries(this.gameObjects).forEach(([key, value]) => {
-            this.gameObjects[key].touchEnd(e);
+            const current = this.gameObjects[key]
+            current.touchEnd({event: e, current});
+            // current.objectTouchEnd({event: e, current});
         })
-        this.touchEnd(e)
+        this.touchEnd({event: e, current: this});
     }
     touchMoveListener(e){
         Object.entries(this.gameObjects).forEach(([key, value]) => {
-            this.gameObjects[key].touchMove(e);
+            const current = this.gameObjects[key]
+            current.touchMove({event: e, current});
+            // current.objectTouchMove({event: e, current});
         })
-        this.touchMove(e)
+        this.touchMove({event: e, current: this});
     }
 }
 
@@ -374,6 +405,12 @@ class GameObject {
         touchStart = e => {},
         touchEnd = e => {},
         touchMove = e => {},
+        objectMouseDown = e => {},
+        objectMouseUp = e => {},
+        objectMouseMove = e => {},
+        objectTouchStart = e => {},
+        objectTouchEnd = e => {},
+        objectTouchMove = e => {},
         load = () => {},
         update = () => {},
     }){
@@ -385,6 +422,13 @@ class GameObject {
         this.touchStart = touchStart
         this.touchEnd = touchEnd
         this.touchMove = touchMove
+
+        this.objectMouseDown = objectMouseDown
+        this.objectMouseUp = objectMouseUp
+        this.objectMouseMove = objectMouseMove
+        this.objectTouchStart = objectTouchStart
+        this.objectTouchEnd = objectTouchEnd
+        this.objectTouchMove = objectTouchMove
 
         this.x = x
         this.y = y
@@ -407,18 +451,16 @@ class GameObject {
             this.image = {...image, element: img}
         }
 
-        load(this)
         this.load = load
         this.update = update
-    }
-    render(ctx){
-        if(this.visible){
-            ctx.fillStyle = this.color
 
-            this.image
-                ? ctx.drawImage(this.image.element, this.x, this.y, this.width, this.height)
-                : ctx.fillRect(this.x, this.y, this.width, this.height)
-        }
+        this.safeObject = cloneObject(this)
+    }
+    render(){
+        this.scene.game.ctx.fillStyle = this.color
+
+        this.scene.game.ctx.fillRect(this.x, this.y, this.width, this.height)
+        this.image && this.scene.game.ctx.drawImage(this.image.element, this.x, this.y, this.width, this.height)
     }
 }
 
@@ -443,6 +485,13 @@ function isCollide(a, b) {
         (a.y > (b.y + b.height)) ||
         ((a.x + a.width) < b.x) ||
         (a.x > (b.x + b.width))
+    )
+}
+
+function isInside(a, b){
+    return (
+        (a.x > b.x && a.x < b.x + b.width) &&
+        (a.y > b.y && a.y < b.y + b.height)
     )
 }
 
