@@ -19,9 +19,15 @@ const game = new Game({
                 width: 100,
                 height: 100,
                 image : {
-                    src: './images/dino1.png',
+                    src: './images/dino1hd.png',
                     pixelated: true
                 }
+            }),
+            cube: new GameObject({
+                color: 'red',
+                width: 25,
+                height: 25,
+                tags: ['cubo']
             })
         },
         keyDown: e => {
@@ -34,7 +40,9 @@ const game = new Game({
     }
 })
 
+const player = game.getGameObject('player')
+console.log(game.getGameObjectByTag('cubo')[0]);
+
 game.loop(dt => {
-    game.ctx.fillStyle = 'red'
-    game.ctx.fillRect(150, 0, 50, 50)
+    game.cameraSmoothTarget(player)
 })

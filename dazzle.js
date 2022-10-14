@@ -1,26 +1,26 @@
 class Game{
     constructor({
-            width = 500,
-            height = 500,
-            id = 'game',
-            background = '#fff',
-            cursor = true,
-            fps = 60,
-            disableContextMenu = true,
-            fullWindow = false,
-            fullScreen = false,
-            activeScene = 'main',
-            mainScene = new Scene(),
-            scenes = {main: mainScene},
-            keyUp = e => {},
-            keyDown = e => {},
-            mouseDown = e => {},
-            mouseUp = e => {},
-            mouseMove = e => {},
-            touchStart = e => {},
-            touchEnd = e => {},
-            touchMove = e => {},
-        }){
+        width = 500,
+        height = 500,
+        id = 'game',
+        background = '#fff',
+        cursor = true,
+        fps = 60,
+        disableContextMenu = true,
+        fullWindow = false,
+        fullScreen = false,
+        activeScene = 'main',
+        mainScene = new Scene(),
+        scenes = {main: mainScene},
+        keyUp = e => {},
+        keyDown = e => {},
+        mouseDown = e => {},
+        mouseUp = e => {},
+        mouseMove = e => {},
+        touchStart = e => {},
+        touchEnd = e => {},
+        touchMove = e => {},
+    }){
 
         this.keyUp = keyUp
         this.keyDown = keyDown
@@ -143,13 +143,29 @@ class Game{
         this.loop(this.loopCallback)
     }
 
-    target(target){
+    cameraTarget(target){
         this.targetX = target.x
         this.targetY = target.y
         this.camera = {
             x: -target.x+(this.width/2),
             y: -target.y+(this.height/2)
         }
+    }
+
+    cameraTargetHelper(target){
+        this.targetX = target.x
+        this.targetY = target.y
+        return {
+            x: -target.x+(this.width/2),
+            y: -target.y+(this.height/2)
+        }
+    }
+
+    cameraSmoothTarget(target, delay = 10){
+        this.camera = this.cameraTargetHelper({
+            x: this.targetX + ((target.x - this.targetX) / delay),
+            y: this.targetY + ((target.y - this.targetY) / delay)
+        })
     }
 
     resetScene(){
@@ -160,15 +176,29 @@ class Game{
         this.activeScene = scene
     }
 
+    createGameObject(name, object){
+        this.scenes[this.activeScene].gameObjects[name] = object
+    }
+
+    instantGameObject(object){
+        this.scenes[this.activeScene].gameObjects[uuidv4()] = object
+    }
+
     removeGameObject(key){
         delete this.scenes[this.activeScene].gameObjects[key]
     }
 
-    smoothTarget(target, delay = 10){
-        this.camera = this.target({
-            x: this.targetX + ((target.x - this.targetX) / delay),
-            y: this.targetY + ((target.y - this.targetY) / delay)
+    getGameObject(key){
+        return this.scenes[this.activeScene].gameObjects[key]
+    }
+
+    getGameObjectByTag(tag){
+        let gameObjectsByTag = []
+        Object.entries(this.scenes[this.activeScene].gameObjects).forEach(([key, value]) => {
+            const objectInstance = this.scenes[this.activeScene].gameObjects[key]
+            if(objectInstance.tags.includes(tag)) gameObjectsByTag.push(objectInstance)
         })
+        return gameObjectsByTag
     }
 
     getMousePosition(event){
@@ -228,63 +258,18 @@ class Game{
     }
 }
 
-class GameObject {
-    constructor({x = 0, y = 0, width = 10, height = 10, color = '#fff', image, visible = true, tags}){
-        this.x = x
-        this.y = y
-        this.width = width
-        this.height = height
-        this.color = color
-        this.visible = visible
-        this.tags = tags
-        if(image){
-            const img = document.createElement('img')
-            img.src = image.src
-            document.body.appendChild(img)
-            if(image.pixelated) img.style.cssText = `
-                image-rendering: pixelated;
-                image-rendering: -moz-crisp-edges;
-                image-rendering: crisp-edges;
-            `
-            img.style.width = '100px'
-            this.image = {...image, element: img}
-        }
-    }
-    render(ctx, camera){
-        if(this.visible){
-            const x = camera.x + this.x
-            const y = camera.y + this.y
-
-            ctx.fillStyle = this.color
-
-            this.image
-                ? ctx.drawImage(this.image.element, x, y, this.width, this.height)
-                : ctx.fillRect(x, y, this.width, this.height)
-        }
-    }
-    update(){}
-    mouseDown(){}
-    mouseUp(){}
-    mouseMove(){}
-    keyUp(){}
-    keyDown(){}
-    touchEnd(){}
-    touchStart(){}
-    touchMove(){}
-}
-
 class Scene {
     constructor({
-            gameObjects = {},
-            keyUp = e => {},
-            keyDown = e => {},
-            mouseDown = e => {},
-            mouseUp = e => {},
-            mouseMove = e => {},
-            touchStart = e => {},
-            touchEnd = e => {},
-            touchMove = e => {},
-        }){
+        gameObjects = {},
+        keyUp = e => {},
+        keyDown = e => {},
+        mouseDown = e => {},
+        mouseUp = e => {},
+        mouseMove = e => {},
+        touchStart = e => {},
+        touchEnd = e => {},
+        touchMove = e => {},
+    }){
 
         this.keyUp = keyUp
         this.keyDown = keyDown
@@ -300,12 +285,12 @@ class Scene {
     }
     render(ctx, camera){
         Object.entries(this.gameObjects).forEach(([key, value]) => {
-            this.gameObjects[key].render(ctx, camera);
+            if(this.gameObjects[key].active && this.gameObjects[key].visible) this.gameObjects[key].render(ctx, camera);
         })
     }
     update(dt){
         Object.entries(this.gameObjects).forEach(([key, value]) => {
-            this.gameObjects[key].update(dt);
+            if(this.gameObjects[key].active) this.gameObjects[key].update(dt);
         })
     }
     reset(){
@@ -361,6 +346,52 @@ class Scene {
         })
         this.touchMove(e)
     }
+}
+
+class GameObject {
+    constructor({x = 0, y = 0, width = 10, height = 10, color = '#fff', image, active = true, visible = true, tags = []}){
+        this.x = x
+        this.y = y
+        this.width = width
+        this.height = height
+        this.color = color
+        this.visible = visible
+        this.active = active
+        this.tags = tags
+        if(image){
+            const img = document.createElement('img')
+            img.src = image.src
+            document.body.appendChild(img)
+            if(image.pixelated) img.style.cssText = `
+                image-rendering: pixelated;
+                image-rendering: -moz-crisp-edges;
+                image-rendering: crisp-edges;
+            `
+            img.style.width = '100px'
+            this.image = {...image, element: img}
+        }
+    }
+    render(ctx, camera){
+        if(this.visible){
+            const x = camera.x + this.x
+            const y = camera.y + this.y
+
+            ctx.fillStyle = this.color
+
+            this.image
+                ? ctx.drawImage(this.image.element, x, y, this.width, this.height)
+                : ctx.fillRect(x, y, this.width, this.height)
+        }
+    }
+    update(){}
+    mouseDown(){}
+    mouseUp(){}
+    mouseMove(){}
+    keyUp(){}
+    keyDown(){}
+    touchEnd(){}
+    touchStart(){}
+    touchMove(){}
 }
 
 class TileMap {
