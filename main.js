@@ -4,9 +4,14 @@ class Player extends GameObject{
     }
     update(dt){
         // console.log('update');
+        // game.camera = {x: this.x, y: this.y}
+        // console.log(game.camera);
     }
     keyDown(e){
         if(e.key == 'd') this.x += 10
+        if(e.key == 'a') this.x -= 10
+        if(e.key == 'w') this.y -= 10
+        if(e.key == 's') this.y += 10
     }
 }
 
@@ -34,15 +39,24 @@ const game = new Game({
             console.log(e.key);
         }
     }),
-    keyDown: e => {
+    keyDown: async e => {
         if(e.key == 'r') game.resetScene()
-        if(e.key == 'p') game.removeGameObject('player')
+        else if(e.key == 'p') game.removeGameObject('player')
+        else if(e.key == 'z') game.zoom -= .25
+        else if(e.key == 'x') game.zoom += .25
+        else if(e.key == 'o') game.setFullscreen(!game.fullScreen)
     }
 })
 
 const player = game.getGameObject('player')
 console.log(game.getGameObjectByTag('cubo')[0]);
 
-game.loop(dt => {
-    game.cameraSmoothTarget(player)
+let cameraOffset = {x: player.x, y: player.y}
+
+game.loop({
+    update: dt => {
+        // game.cameraSmoothTarget(player)
+        game.cameraTarget(player)
+    },
+    render: () => {}
 })

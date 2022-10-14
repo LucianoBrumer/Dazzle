@@ -41,6 +41,7 @@ class Game{
         this.width = width;
         this.height = height;
         this.fullScreen = fullScreen;
+        this.zoom = 1
 
         this.cv.width = width;
         this.cv.height = height;
@@ -80,9 +81,8 @@ class Game{
 
         this.fps = fps
 
-        this.targetX = 0
-        this.targetY = 0
-        this.camera = {x: 0, y: 0}
+        this.pct = 0
+        this.camera = {x: this.width/2, y: this.height/2}
 
         document.addEventListener("keydown", e => this.keyDownListener(e))
         document.addEventListener("keyup", e => this.keyUpListener(e))
@@ -117,7 +117,7 @@ class Game{
         this.cv.height = height;
     }
 
-    loop(callback = () => {}){
+    loop(callback = {update: () => {}, render: () => {}}){
         this.loopCallback = callback
 
         let lastTick = Date.now()
@@ -130,9 +130,18 @@ class Game{
             lastTick = now
 
             this.clear()
+
+            this.ctx.save()
+
+            callback.update(deltaTime)
             this.scenes[this.activeScene].update(deltaTime)
-            callback(deltaTime)
+
+            this.ctx.translate(-this.camera.x + this.width/2, -this.camera.y + this.width/2)
+            // this.ctx.scale(this.zoom, this.zoom)
+            callback.render(deltaTime)
             this.scenes[this.activeScene].render(this.ctx, this.camera)
+
+            this.ctx.restore()
         }
         this.loopInterval = setInterval(loop, 1000/this.fps);
     }
@@ -144,32 +153,23 @@ class Game{
     }
 
     cameraTarget(target){
-        this.targetX = target.x
-        this.targetY = target.y
+        console.log(this.zoom);
         this.camera = {
-            x: -target.x+(this.width/2),
-            y: -target.y+(this.height/2)
+            x: target.x,
+            y: target.y
         }
     }
 
-    cameraTargetHelper(target){
-        this.targetX = target.x
-        this.targetY = target.y
-        return {
-            x: -target.x+(this.width/2),
-            y: -target.y+(this.height/2)
+    cameraSmoothTarget(target, delay = 15){
+        this.camera = {
+            x: this.camera.x + ((target.x - this.camera.x) / delay),
+            y: this.camera.y + ((target.y - this.camera.y) / delay)
         }
-    }
-
-    cameraSmoothTarget(target, delay = 10){
-        this.camera = this.cameraTargetHelper({
-            x: this.targetX + ((target.x - this.targetX) / delay),
-            y: this.targetY + ((target.y - this.targetY) / delay)
-        })
     }
 
     resetScene(){
         this.scenes[this.activeScene].reset()
+        this.zoom = 1
     }
 
     changeScene(scene){
@@ -221,6 +221,7 @@ class Game{
             }
         }else{
             this.fullScreen = false
+            document.exitFullscreen()
         }
     }
 
@@ -295,7 +296,6 @@ class Scene {
     }
     reset(){
         console.log(this.gameObjects , this.lastGameObjects);
-        this.ga
         this.gameObjects = cloneObject(this.lastGameObjects)
     }
     keyDownListener(e){
@@ -371,16 +371,13 @@ class GameObject {
             this.image = {...image, element: img}
         }
     }
-    render(ctx, camera){
+    render(ctx){
         if(this.visible){
-            const x = camera.x + this.x
-            const y = camera.y + this.y
-
             ctx.fillStyle = this.color
 
             this.image
-                ? ctx.drawImage(this.image.element, x, y, this.width, this.height)
-                : ctx.fillRect(x, y, this.width, this.height)
+                ? ctx.drawImage(this.image.element, this.x, this.y, this.width, this.height)
+                : ctx.fillRect(this.x, this.y, this.width, this.height)
         }
     }
     update(){}
