@@ -10,8 +10,7 @@ class Game{
         fullWindow = false,
         fullScreen = false,
         activeScene = 'main',
-        mainScene = new Scene(),
-        scenes = {main: mainScene},
+        scenes = {main: new Scene()},
         keyUp = e => {},
         keyDown = e => {},
         mouseDown = e => {},
@@ -20,6 +19,7 @@ class Game{
         touchStart = e => {},
         touchEnd = e => {},
         touchMove = e => {},
+        load = () => {},
     }){
 
         this.keyUp = keyUp
@@ -59,7 +59,7 @@ class Game{
             })
         }
 
-        this.scenes = {main: mainScene, ...scenes}
+        this.scenes = scenes
         this.activeScene = activeScene
 
         document.body.innerHTML += `
@@ -81,7 +81,6 @@ class Game{
 
         this.fps = fps
 
-        this.pct = 0
         this.camera = {x: this.width/2, y: this.height/2}
 
         document.addEventListener("keydown", e => this.keyDownListener(e))
@@ -99,22 +98,12 @@ class Game{
 		if(disableContextMenu) window.addEventListener('contextmenu', e => e.preventDefault())
 
         if(!document.body.contains(this.cv)) document.body.appendChild(this.cv)
+
+        load(this)
     }
 
     clear(){
         this.ctx.clearRect(0, 0, this.width, this.height);
-    }
-
-    setCursor(x){
-        x ? this.cv.style.cursor = "default" : this.cv.style.cursor = "none"
-    }
-
-    setSize(width, height){
-        this.width = width;
-        this.height = height;
-
-        this.cv.width = width;
-        this.cv.height = height;
     }
 
     loop(callback = {update: () => {}, render: () => {}}){
@@ -129,21 +118,33 @@ class Game{
             this.currentFPS = 1000 / (now - lastTick)
             lastTick = now
 
-            this.clear()
-
-            this.ctx.save()
-
+            // this.scenes[this.activeScene].update(deltaTime)
             callback.update(deltaTime)
-            this.scenes[this.activeScene].update(deltaTime)
+
+            this.clear()
+            this.ctx.save()
+            this.clear()
 
             this.ctx.translate(-this.camera.x + this.width/2, -this.camera.y + this.width/2)
             // this.ctx.scale(this.zoom, this.zoom)
-            callback.render(deltaTime)
+            // callback.render()
             this.scenes[this.activeScene].render(this.ctx, this.camera)
 
             this.ctx.restore()
         }
         this.loopInterval = setInterval(loop, 1000/this.fps);
+    }
+
+    setCursor(x){
+        x ? this.cv.style.cursor = "default" : this.cv.style.cursor = "none"
+    }
+
+    setSize(width, height){
+        this.width = width;
+        this.height = height;
+
+        this.cv.width = width;
+        this.cv.height = height;
     }
 
     setFPS(fps){
@@ -270,8 +271,8 @@ class Scene {
         touchStart = e => {},
         touchEnd = e => {},
         touchMove = e => {},
+        load = () => {}
     }){
-
         this.keyUp = keyUp
         this.keyDown = keyDown
         this.mouseDown = mouseDown
@@ -283,6 +284,8 @@ class Scene {
 
         this.gameObjects = gameObjects
         this.lastGameObjects = cloneObject(gameObjects)
+
+        load(this)
     }
     render(ctx, camera){
         Object.entries(this.gameObjects).forEach(([key, value]) => {
@@ -349,7 +352,7 @@ class Scene {
 }
 
 class GameObject {
-    constructor({x = 0, y = 0, width = 10, height = 10, color = '#fff', image, active = true, visible = true, tags = []}){
+    constructor({x = 0, y = 0, width = 10, height = 10, color = '#fff', image, active = true, visible = true, tags = [], load = () => {}}){
         this.x = x
         this.y = y
         this.width = width
@@ -370,6 +373,7 @@ class GameObject {
             img.style.width = '100px'
             this.image = {...image, element: img}
         }
+        load(this)
     }
     render(ctx){
         if(this.visible){
