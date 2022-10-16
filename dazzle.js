@@ -501,20 +501,19 @@ class TileMap {
 
         let row = 0
         for (let i = 0; i < str.length; i++) {
-            const object = cloneObject(props[str[i]])
-            // object.
-            // object.
-            this.map[row].push(object)
-            // this.gameObjects[uuidv4()] = object
-            // this.gameObjects[uuidv4()] = props[str[i]]
-            this.gameObjects[uuidv4()] = new GameObject({
+            const object = new GameObject({
                 ...props[str[i]],
                 x: props.x + (props.size * (this.map[row].length - 1)),
-                y: props.y + (props.size * row)
+                y: props.y + (props.size * row),
+                width: props.size,
+                height: props.size
             })
+            this.map[row].push(str[i])
+            if(props[str[i]]){
+                this.gameObjects[uuidv4()] = object
+            }
             if(this.map[row].length === props.cols) row++
         }
-
     }
     render(ctx, camera){
 

@@ -4,8 +4,8 @@ const TileMapTest = {
     size: 50,
     rows: 4,
     cols: 3,
-    X: {color: 'red', width: 50, height: 50},
-    O: {color: 'blue', width: 50, height: 50},
+    X: {color: 'red'},
+    O: {color: 'blue'},
     map: `
         XXX
         XOX
