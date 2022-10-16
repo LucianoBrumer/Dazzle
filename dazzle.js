@@ -17,8 +17,7 @@ class Game{
         cursor = true,
         fps = 60,
         disableContextMenu = true,
-        cameraGameObjectFollow,
-        cameraGameObjectFollowDelay = 1,
+        camera = {x: 0, y: 0, delay: 1},
         fullWindow = false,
         fullScreen = false,
         activeScene = 'main',
@@ -63,13 +62,12 @@ class Game{
             this.setSize(window.innerWidth, window.innerHeight)
             window.addEventListener('resize', () => {
                 this.setSize(window.innerWidth, window.innerHeight)
-                console.log(this.width, window.innerWidth);
             })
         }
 
         this.fps = fps
 
-        this.camera = {x: this.width/2, y: this.height/2, gameObjectFollow: cameraGameObjectFollow, gameObjectFollowDelay: cameraGameObjectFollowDelay}
+        this.camera = {x: camera.x ? camera.x : 0, y: camera.y ? camera.y : 0, target: camera.target, delay: camera.delay}
 
         document.addEventListener("keydown", e => this.keyDownListener(e))
         document.addEventListener("keyup", e => this.keyUpListener(e))
@@ -87,7 +85,11 @@ class Game{
 
         if(!document.body.contains(this.cv)) document.body.appendChild(this.cv)
 
-        this.scenes = scenes
+        this.scenes = {}
+        this.scenesProps = {}
+        Object.entries(scenes).forEach(([key, value]) => {
+            this.scenesProps[key] = value
+        })
         this.activeScene = activeScene
 
         load(this)
@@ -95,17 +97,7 @@ class Game{
         this.update = update
         this.render = render
 
-        Object.entries(this.scenes).forEach(([key, value]) => {
-            const currentScene = this.scenes[key]
-            currentScene.game = this
-            currentScene.load(currentScene)
-
-            Object.entries(currentScene.gameObjects).forEach(([key, value]) => {
-                const currentObject = currentScene.gameObjects[key]
-                currentObject.scene = currentScene
-                currentObject.load(currentObject)
-            })
-        })
+        this.resetScene()
 
         this.updateListener()
 
@@ -122,7 +114,6 @@ class Game{
     }
 
     updateListener(){
-
         this.lastTick = Date.now()
         this.deltaTime = 0
 
@@ -132,8 +123,11 @@ class Game{
             this.currentFPS = 1000 / (now - this.lastTick)
             this.lastTick = now
 
-
-            if(this.camera.gameObjectFollow) this.cameraTarget(this.getGameObject(this.camera.gameObjectFollow), this.camera.gameObjectFollowDelay)
+            try {
+                if(this.camera.target) this.cameraTarget(this.getGameObject(this.camera.target), this.camera.delay)
+            } catch (error) {
+                console.error('Camera target GameObject undefined');
+            }
 
             this.scenes[this.activeScene].updateListener()
             this.update(this)
@@ -177,20 +171,29 @@ class Game{
     }
 
     resetScene(){
-        this.scenes[this.activeScene].reset()
-        this.zoom = 1
+        const scene = new Scene(this.scenesProps[this.activeScene])
+        scene.game = this
+        scene.load()
+        Object.entries(scene.gameObjects).forEach(([key, value]) => {
+            const object = value
+            object.scene = scene
+            object.load(object)
+        })
+        this.scenes[this.activeScene] = scene
+        // this.zoom = 1
     }
 
     changeScene(scene){
         this.activeScene = scene
+        this.resetScene()
     }
 
-    createGameObject(name, object){
-        this.scenes[this.activeScene].gameObjects[name] = object
+    createGameObject(name, props){
+        this.scenes[this.activeScene].gameObjects[name] = new GameObject(props)
     }
 
-    instantGameObject(object){
-        this.scenes[this.activeScene].gameObjects[uuidv4()] = object
+    instantGameObject(props){
+        this.scenes[this.activeScene].gameObjects[uuidv4()] = new GameObject(props)
     }
 
     removeGameObject(key){
@@ -213,8 +216,8 @@ class Game{
     getMousePosition(event){
         const rect = this.cv.getBoundingClientRect();
         this.getMouse = {
-            x: event.clientX - rect.left,
-            y: event.clientY - rect.top
+            x: (event.clientX - rect.left) - (-this.camera.x + this.width/2),
+            y: (event.clientY - rect.top) - (-this.camera.y + this.height/2)
         }
     }
 
@@ -275,6 +278,7 @@ class Game{
 class Scene {
     constructor({
         gameObjects = {},
+        tileMaps = [],
         keyUp = e => {},
         keyDown = e => {},
         mouseDown = e => {},
@@ -296,8 +300,24 @@ class Scene {
         this.touchEnd = touchEnd
         this.touchMove = touchMove
 
-        this.gameObjects = gameObjects
-        this.lastGameObjects = cloneObject(gameObjects)
+        this.gameObjects = {}
+
+        tileMaps.forEach(tileMapProps => {
+            const tileMap = new TileMap(tileMapProps)
+            this.gameObjects = {...this.gameObjects, ...tileMap.gameObjects}
+        })
+
+        Object.entries(gameObjects).forEach(([key, value]) => {
+            this.gameObjects[key] = new GameObject(value)
+        })
+
+        this.gameObjectsProps = {}
+        Object.entries(this.gameObjects).forEach(([key, value]) => {
+            this.gameObjectsProps[key] = {}
+            Object.entries(value).forEach(([key2, value2]) => {
+                this.gameObjectsProps[key][key2] = value2
+            })
+        })
 
         this.load = load
         this.update = update
@@ -319,8 +339,13 @@ class Scene {
         })
     }
     reset(){
-        console.log(this.gameObjects , this.lastGameObjects);
-        this.gameObjects = cloneObject(this.lastGameObjects)
+        // console.log(this.gameObjects , this.lastGameObjects);
+        let resetedGameObjects = {}
+        Object.entries(this.gameObjectsProps).forEach(([key, value]) => {
+            resetedGameObjects[key] = new GameObject(value)
+            resetedGameObjects[key].scene = this
+        })
+        this.gameObjects = resetedGameObjects
     }
     keyDownListener(e){
         Object.entries(this.gameObjects).forEach(([key, value]) => {
@@ -340,7 +365,9 @@ class Scene {
         Object.entries(this.gameObjects).forEach(([key, value]) => {
             const current = this.gameObjects[key]
             current.mouseDown({event: e, current});
-            if(isInside(this.game.getMouse, current)) current.objectMouseDown({event: e, current});
+            if(isInside(this.game.getMouse, current)) {
+                current.objectMouseDown({event: e, current});
+            }
         })
         this.mouseDown({event: e, current: this});
     }
@@ -439,34 +466,55 @@ class GameObject {
         this.active = active
         this.tags = tags
         if(image){
-            const img = document.createElement('img')
+            const img = new Image()
             img.src = image.src
-            document.body.appendChild(img)
-            if(image.pixelated) img.style.cssText = `
-                image-rendering: pixelated;
-                image-rendering: -moz-crisp-edges;
-                image-rendering: crisp-edges;
-            `
-            img.style.width = '100px'
             this.image = {...image, element: img}
         }
 
         this.load = load
         this.update = update
-
-        this.safeObject = cloneObject(this)
     }
     render(){
         this.scene.game.ctx.fillStyle = this.color
 
         this.scene.game.ctx.fillRect(this.x, this.y, this.width, this.height)
-        this.image && this.scene.game.ctx.drawImage(this.image.element, this.x, this.y, this.width, this.height)
+        if(this.image){
+            if(this.image.pixelated) this.scene.game.ctx.imageSmoothingEnabled = false;
+            this.scene.game.ctx.drawImage(this.image.element, this.x, this.y, this.width, this.height)
+        }
     }
 }
 
 class TileMap {
     constructor(props){
-        console.log(props);
+        this.x = props.x
+        this.y = props.y
+
+        const str = props.map.replaceAll(' ', '').trim().split()[0].replaceAll('\n', '')
+
+        this.map = []
+        this.gameObjects = {}
+
+        for (let i = 0; i < props.rows; i++) {
+            this.map[i] = []
+        }
+
+        let row = 0
+        for (let i = 0; i < str.length; i++) {
+            const object = cloneObject(props[str[i]])
+            // object.
+            // object.
+            this.map[row].push(object)
+            // this.gameObjects[uuidv4()] = object
+            // this.gameObjects[uuidv4()] = props[str[i]]
+            this.gameObjects[uuidv4()] = new GameObject({
+                ...props[str[i]],
+                x: props.x + (props.size * (this.map[row].length - 1)),
+                y: props.y + (props.size * row)
+            })
+            if(this.map[row].length === props.cols) row++
+        }
+
     }
     render(ctx, camera){
 
