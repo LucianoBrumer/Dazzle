@@ -101,8 +101,6 @@ class Game{
         this.resetScene()
 
         this.updateListener()
-
-        this.safeObject = cloneObject(this)
     }
 
     setBackgroundColor(backgroundColor){
@@ -191,10 +189,12 @@ class Game{
 
     createGameObject(name, props){
         this.scenes[this.activeScene].gameObjects[name] = new GameObject(props)
+        this.scenes[this.activeScene].sortGameObjectsByLayer()
     }
 
     instantGameObject(props){
         this.scenes[this.activeScene].gameObjects[uuidv4()] = new GameObject(props)
+        this.scenes[this.activeScene].sortGameObjectsByLayer()
     }
 
     removeGameObject(key){
@@ -312,19 +312,16 @@ class Scene {
             this.gameObjects[key] = new GameObject(value)
         })
 
-        this.gameObjectsProps = {}
-        Object.entries(this.gameObjects).forEach(([key, value]) => {
-            this.gameObjectsProps[key] = {}
-            Object.entries(value).forEach(([key2, value2]) => {
-                this.gameObjectsProps[key][key2] = value2
-            })
-        })
+        this.sortGameObjectsByLayer()
 
         this.load = load
         this.update = update
         this.render = render
-
-        this.safeObject = cloneObject(this)
+    }
+    sortGameObjectsByLayer(){
+        this.gameObjects = Object.entries(this.gameObjects)
+            .sort(([,a],[,b]) => a.z-b.z)
+            .reduce((r, [k, v]) => ({ ...r, [k]: v }), {})
     }
     updateListener(){
         Object.entries(this.gameObjects).forEach(([key, value]) => {
@@ -338,15 +335,6 @@ class Scene {
             const current = this.gameObjects[key]
             if(current.active && current.visible) current.render();
         })
-    }
-    reset(){
-        // console.log(this.gameObjects , this.lastGameObjects);
-        let resetedGameObjects = {}
-        Object.entries(this.gameObjectsProps).forEach(([key, value]) => {
-            resetedGameObjects[key] = new GameObject(value)
-            resetedGameObjects[key].scene = this
-        })
-        this.gameObjects = resetedGameObjects
     }
     keyDownListener(e){
         Object.entries(this.gameObjects).forEach(([key, value]) => {
@@ -418,6 +406,7 @@ class GameObject {
     constructor({
         x = 0,
         y = 0,
+        z = 0,
         width = 10,
         height = 10,
         color = '#fff',
@@ -460,6 +449,7 @@ class GameObject {
 
         this.x = x
         this.y = y
+        this.z = z
         this.width = width
         this.height = height
         this.color = color
@@ -558,11 +548,3 @@ const randomItemFromArray = array => array[Math.floor(Math.random() * array.leng
 const uuidv4 = () => ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>(c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16))
 
 const getDifference = (a, b) => Math.abs(a - b)
-
-const cloneObject = objectInstance => {
-    let clone = {}
-    Object.entries(objectInstance).forEach(([key, value]) => {
-        clone[key] = Object.assign(Object.create(Object.getPrototypeOf(objectInstance[key])), objectInstance[key])
-    })
-    return clone
-}

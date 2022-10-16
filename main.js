@@ -18,6 +18,7 @@ const Player = {
     color: '#000',
     width: 50,
     height: 50,
+    z: 1,
     image : {
         src: './images/dino1.png',
         pixelated: true
@@ -54,9 +55,10 @@ const game = new Game({
             gameObjects: {
                 player: Player,
                 cube: {
-                    color: 'red',
+                    color: 'rgb(255, 0, 0, 0.5)',
                     width: 25,
                     height: 25,
+                    z: 2,
                     tags: ['cubo']
                 },
             },
