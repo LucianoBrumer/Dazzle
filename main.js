@@ -29,12 +29,6 @@ const Player = {
         current.shot = () => {
             console.log('shot');
         }
-        // console.log(current.scene.game);
-    },
-    update: current => {
-        // current.y += .1
-        // console.log('object update');
-        // console.log(current.scene.game);
     },
     keyDown: ({event, current}) => {
         if(event.key == 'd') current.x += current.speed
@@ -50,6 +44,7 @@ const Player = {
 
 const game = new Game({
     backgroundColor: '#aaa',
+    // fullWindow: true,
     camera: {
         target: 'player',
         delay: 15
@@ -68,33 +63,26 @@ const game = new Game({
             tileMaps: [TileMapTest],
             load: current => {
                 console.log('scene load');
-                // current.game.backgroundColor = 'red'
-                // console.log(current.game);
-            },
-            update: current => {
-                // console.log('scene update');
-                // console.log(current.game);
-                // current.game.backgroundColor = 'red'
-                // const player = current.gameObjects['player']
-                // console.log(player);
-            },
-            keyDown: e => {
-                // console.log(e.key);
             },
         }
     },
     load: current => {
         console.log('game load');
-        // current.backgroundColor = 'blue'
-    },
-    update: current => {
-        // console.log('game update');
     },
     keyDown: ({event, current}) => {
         if(event.key == 'r') current.resetScene()
         else if(event.key == 'p') current.removeGameObject('cube')
-        else if(event.key == 'z') current.zoom -= .25
-        else if(event.key == 'x') current.zoom += .25
         else if(event.key == 'o') current.setFullscreen(!current.fullScreen)
     },
+})
+
+window.addEventListener('resize', () => {
+    console.log('game: ', game.width, game.height);
+    console.log('ctx: ', game.cv.width, game.cv.height);
+    console.log('window: ', window.innerWidth, window.innerHeight);
+    console.log('document: ', document.body.clientWidth, document.body.clientHeight);
+})
+
+window.addEventListener('mousedown', event => {
+    console.log('mouse: ', event.clientX, event.clientY);
 })

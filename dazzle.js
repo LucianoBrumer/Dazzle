@@ -4,6 +4,7 @@ document.body.innerHTML += `
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            overflow: hidden;
         }
     </style>
 `
@@ -67,7 +68,7 @@ class Game{
 
         this.fps = fps
 
-        this.camera = {x: camera.x ? camera.x : 0, y: camera.y ? camera.y : 0, target: camera.target, delay: camera.delay}
+        this.camera = {x: camera.x ? camera.x : this.width/2, y: camera.y ? camera.y : this.height/2, target: camera.target, delay: camera.delay}
 
         document.addEventListener("keydown", e => this.keyDownListener(e))
         document.addEventListener("keyup", e => this.keyUpListener(e))
@@ -136,7 +137,7 @@ class Game{
             this.ctx.save()
             this.clear()
 
-            this.ctx.translate(-this.camera.x + this.width/2, -this.camera.y + this.width/2)
+            this.ctx.translate(-this.camera.x + this.width/2, -this.camera.y + this.height/2)
             // this.ctx.scale(this.zoom, this.zoom)
 
             this.render(this)
@@ -166,8 +167,8 @@ class Game{
     }
 
     cameraTarget(target, delay = 1){
-        this.camera.x += (target.x - this.camera.x) / delay
-        this.camera.y += (target.y - this.camera.y) / delay
+        this.camera.x += ((target.x + target.width/2) - this.camera.x) / delay
+        this.camera.y += ((target.y + target.height/2) - this.camera.y) / delay
     }
 
     resetScene(){
