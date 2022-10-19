@@ -187,7 +187,7 @@ class Game{
         return this.cv.toDataURL('image/png')
     }
 
-    async downloadScreenshot(){
+    downloadScreenshot(){
         const a = document.createElement("a")
         a.href = this.screenshot()
         a.download = `${document.title} - screenshot.png`;
