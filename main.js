@@ -58,6 +58,12 @@ const game = new Game({
         target: 'player',
         delay: 15
     },
+    audio: {
+        touch: {
+            src: './soduns/auch.mp3',
+            volume: 0.5
+        }
+    },
     scenes: {
         main: {
             gameObjects: {

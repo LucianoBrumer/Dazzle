@@ -183,6 +183,19 @@ class Game{
         this.cv.height = height;
     }
 
+    screenshot(){
+        return this.cv.toDataURL('image/png')
+    }
+
+    async downloadScreenshot(){
+        const a = document.createElement("a")
+        a.href = this.screenshot()
+        a.download = `${document.title} - screenshot.png`;
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+    }
+
     setFPS(fps){
         clearInterval(this.loopInterval)
         this.fps = fps
