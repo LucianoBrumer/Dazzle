@@ -54,6 +54,9 @@ const game = new Game({
     // darkness: {
     //     global: .9
     // },
+    // effects: {
+    //     shadow: 'rgba(255, 255, 255, 0.1)'
+    // },
     camera: {
         target: 'player',
         delay: 15

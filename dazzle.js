@@ -24,6 +24,7 @@ class Game{
         activeScene = 'main',
         scenes = {main: new Scene()},
         darkness,
+        effects,
         keyUp = e => {},
         keyDown = e => {},
         mouseDown = e => {},
@@ -87,6 +88,11 @@ class Game{
 
         if(!document.body.contains(this.cv)) document.body.appendChild(this.cv)
 
+        this.effects = {
+            shadow: null,
+            ...effects
+        }
+
         this.darkness = {
             intensity: 1,
             global: 0,
@@ -126,7 +132,12 @@ class Game{
     }
 
     clear(){
-        this.ctx.clearRect(0, 0, this.width, this.height);
+        if(this.effects.shadow){
+            this.ctx.fillStyle = this.effects.shadow
+            this.ctx.fillRect(0, 0, this.width, this.height);
+        }else{
+            this.ctx.clearRect(0, 0, this.width, this.height);
+        }
     }
 
     updateListener(){
