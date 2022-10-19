@@ -23,6 +23,7 @@ class Game{
         fullScreen = false,
         activeScene = 'main',
         scenes = {main: new Scene()},
+        darkness,
         keyUp = e => {},
         keyDown = e => {},
         mouseDown = e => {},
@@ -86,6 +87,22 @@ class Game{
 
         if(!document.body.contains(this.cv)) document.body.appendChild(this.cv)
 
+        this.darkness = {
+            intensity: 1,
+            global: 0,
+            ...darkness
+        }
+        this.lightLayer = document.createElement('div')
+        this.lightLayer.style.cssText = `
+            top: ${getElementPosition(this.cv).x}px;
+            left: ${getElementPosition(this.cv).y}px;
+            position: absolute;
+            width: ${this.width}px;
+            height: ${this.height}px;
+            pointer-events: none;
+        `
+        document.body.appendChild(this.lightLayer)
+
         this.scenes = {}
         this.scenesProps = {}
         Object.entries(scenes).forEach(([key, value]) => {
@@ -140,6 +157,14 @@ class Game{
 
             this.render(this)
             this.scenes[this.activeScene].renderListener(this.ctx, this.camera)
+
+            let gameObjectsWithLightLevel = Object.entries(this.scenes[this.activeScene].gameObjects).map(object => {
+                object = object[1]
+                if(object.light.color !== undefined && object.render) return object
+            }).filter(object => object !== undefined)
+            this.darkness.level = ((this.darkness.global * 2) / gameObjectsWithLightLevel.length)
+            const lightsCSS = gameObjectsWithLightLevel.map(object => `radial-gradient(circle at ${-this.camera.x + this.width/2 + (object.x + object.width/2)}px ${-this.camera.y + this.height/2 + (object.y + object.height/2)}px, ${object.light.color} ${object.light.inner}px, rgba(0, 0, 0, ${this.darkness.level}) ${object.light.radius}px)`).join()
+            this.lightLayer.style.background = lightsCSS
 
             this.ctx.restore()
         }
@@ -413,6 +438,7 @@ class GameObject {
         image,
         active = true,
         visible = true,
+        light,
         tags = [],
         keyUp = e => {},
         keyDown = e => {},
@@ -461,6 +487,12 @@ class GameObject {
             img.src = image.src
             this.image = {...image, element: img}
         }
+
+        this.light = {
+            radius: 50,
+            ...light
+        }
+        this.light.inner = this.light.radius/2
 
         this.load = load
         this.update = update
@@ -548,3 +580,15 @@ const randomItemFromArray = array => array[Math.floor(Math.random() * array.leng
 const uuidv4 = () => ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>(c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16))
 
 const getDifference = (a, b) => Math.abs(a - b)
+
+function getElementPosition(primaryElement) {
+    let element = primaryElement
+    let x = element.offsetLeft;
+    let y = element.offsetTop
+    while (element = element.offsetParent)
+        x += element.offsetLeft;
+    element = primaryElement
+    while (element = element.offsetParent)
+        y += element.offsetTop;
+    return {x , y};
+}

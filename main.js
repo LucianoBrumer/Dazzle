@@ -18,6 +18,11 @@ const Player = {
     color: '#000',
     width: 50,
     height: 50,
+    // light: {
+    //     color: 'transparent',
+    //     radius: 75,
+    //     inner: 50,
+    // },
     z: 1,
     image : {
         src: './images/dino1.png',
@@ -46,6 +51,9 @@ const Player = {
 const game = new Game({
     backgroundColor: '#aaa',
     // fullWindow: true,
+    // darkness: {
+    //     global: .9
+    // },
     camera: {
         target: 'player',
         delay: 15
@@ -59,7 +67,10 @@ const game = new Game({
                     width: 25,
                     height: 25,
                     z: 2,
-                    tags: ['cubo']
+                    tags: ['cubo'],
+                    light: {
+                        color: 'rgba(255, 0, 0, .25)'
+                    }
                 },
             },
             tileMaps: [TileMapTest],
@@ -76,15 +87,4 @@ const game = new Game({
         else if(event.key == 'p') current.removeGameObject('cube')
         else if(event.key == 'o') current.setFullscreen(!current.fullScreen)
     },
-})
-
-window.addEventListener('resize', () => {
-    console.log('game: ', game.width, game.height);
-    console.log('ctx: ', game.cv.width, game.cv.height);
-    console.log('window: ', window.innerWidth, window.innerHeight);
-    console.log('document: ', document.body.clientWidth, document.body.clientHeight);
-})
-
-window.addEventListener('mousedown', event => {
-    console.log('mouse: ', event.clientX, event.clientY);
 })
