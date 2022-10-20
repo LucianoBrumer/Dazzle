@@ -243,6 +243,7 @@ class Game{
 
     createGameObject(name, props){
         const newGameObject = new GameObject(props)
+        newGameObject.keyName = name
         newGameObject.scene = this.scenes[this.activeScene]
         newGameObject.load(newGameObject)
         this.scenes[this.activeScene].gameObjects[name] = props
@@ -253,6 +254,7 @@ class Game{
     instantGameObject(props){
         const name = uuidv4()
         const newGameObject = new GameObject(props)
+        newGameObject.keyName = name
         newGameObject.scene = this.scenes[this.activeScene]
         newGameObject.load(newGameObject)
         this.scenes[this.activeScene].gameObjects[name] = newGameObject
@@ -386,7 +388,9 @@ class Scene {
         })
 
         Object.entries(gameObjects).forEach(([key, value]) => {
-            this.gameObjects[key] = new GameObject(value)
+            const newGameObject = new GameObject(value)
+            newGameObject.keyName = key
+            this.gameObjects[key] = newGameObject
         })
 
         this.sortGameObjectsByLayer()
@@ -592,7 +596,9 @@ class TileMap {
             })
             this.map[row].push(str[i])
             if(props[str[i]]){
-                this.gameObjects[uuidv4()] = object
+                const name = uuidv4()
+                object.keyName = name
+                this.gameObjects[name] = object
             }
             if(this.map[row].length === props.cols) row++
         }
@@ -623,6 +629,8 @@ function isInside(a, b){
         (a.y > b.y && a.y < b.y + b.height)
     )
 }
+
+const positionsMatch = (a, b) => a.x === b.x && a.y === b.y
 
 function getDistance(a, b){
     let y = b.x - a.x;

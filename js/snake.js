@@ -18,8 +18,9 @@ const Apple = {
             current.x =  x * current.scene.grid
             current.y = y * current.scene.grid
 
+            //if new position are inside of snake, reset position again
             current.scene.snake.forEach(snake => {
-                if(current.x == snake.x && current.y == snake.y){
+                if(positionsMatch(snake, current)){
                     current.reset(current)
                 }
             })
@@ -48,8 +49,6 @@ const game = new Game({
                 const head = current.game.instantGameObject(SnakeBody)
                 current.snake.push(head)
 
-                current.asd = [0]
-
                 document.title = 'Snake - Dazzle'
             },
             update: current => {
@@ -59,11 +58,8 @@ const game = new Game({
                 newHead.y = snakeHead.y + current.speedY
                 current.snake.push(newHead)
 
-                const lastSnake = current.snake[0]
-                Object.entries(current.gameObjects).forEach(([key, value]) => {
-                    if(value.id === lastSnake.id) current.game.removeGameObject(key)
-                })
-                current.snake = current.snake.filter(snake => snake.id !== lastSnake.id)
+                const lastSnake = current.snake.shift()
+                current.game.removeGameObject(lastSnake.keyName)
 
                 if(current.snake.length > 1){
                     current.snake.forEach(snake => {
@@ -82,7 +78,7 @@ const game = new Game({
                 }
 
                 const apple = current.gameObjects['apple']
-                if(newHead.x === apple.x && newHead.y === apple.y){
+                if(positionsMatch(apple, newHead)){
                     const newSnake = current.game.instantGameObject(SnakeBody)
                     newSnake.x = newHead.x
                     newSnake.y = newHead.y
