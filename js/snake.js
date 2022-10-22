@@ -27,6 +27,18 @@ const Apple = {
         }
 
         current.reset(current)
+    },
+    onPositionMatch: ({current, target}) => {
+        const snakeHead = current.scene.snake[current.scene.snake.length-1]
+
+        if(target.id === snakeHead.id){
+            const newSnake = current.scene.instantGameObject(SnakeBody)
+            newSnake.x = target.x
+            newSnake.y = target.y
+            current.scene.snake.push(newSnake)
+            current.reset(current)
+            current.scene.score++
+        }
     }
 }
 
@@ -46,20 +58,22 @@ const game = new Game({
                 current.speedY = 0
                 current.snake = []
 
-                const head = current.game.instantGameObject(SnakeBody)
+                current.score = 0
+
+                const head = current.instantGameObject(SnakeBody)
                 current.snake.push(head)
 
                 document.title = 'Snake - Dazzle'
             },
             update: current => {
                 const snakeHead = current.snake[current.snake.length-1]
-                const newHead = current.game.instantGameObject(SnakeBody)
+                const newHead = current.instantGameObject(SnakeBody)
                 newHead.x = snakeHead.x + current.speedX
                 newHead.y = snakeHead.y + current.speedY
                 current.snake.push(newHead)
 
                 const lastSnake = current.snake.shift()
-                current.game.removeGameObject(lastSnake.keyName)
+                current.removeGameObject(lastSnake.keyName)
 
                 if(current.snake.length > 1){
                     current.snake.forEach(snake => {
@@ -75,15 +89,6 @@ const game = new Game({
                     newHead.y < 0
                 ){
                     current.game.resetScene()
-                }
-
-                const apple = current.gameObjects['apple']
-                if(positionsMatch(apple, newHead)){
-                    const newSnake = current.game.instantGameObject(SnakeBody)
-                    newSnake.x = newHead.x
-                    newSnake.y = newHead.y
-                    current.snake.push(newSnake)
-                    apple.reset(apple)
                 }
 
                 // current.game.cameraTarget(newHead, 5)

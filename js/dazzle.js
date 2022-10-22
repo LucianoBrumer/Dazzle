@@ -75,7 +75,16 @@ class Game{
 
         this.fps = fps
 
-        this.camera = {x: camera.x ? camera.x : this.width/2, y: camera.y ? camera.y : this.height/2, target: camera.target, delay: camera.delay}
+        this.camera = {
+            x: camera.x ? camera.x : this.width/2,
+            y: camera.y ? camera.y : this.height/2,
+            target: camera.target,
+            delay: camera.delay,
+            shake: {
+                x: 0,
+                y: 0
+            }
+        }
 
         this.pause = false
 
@@ -169,7 +178,7 @@ class Game{
             this.ctx.save()
             this.clear()
 
-            this.ctx.translate(-this.camera.x + this.width/2, -this.camera.y + this.height/2)
+            this.ctx.translate(-(this.camera.x + this.camera.shake.x) + this.width/2, -(this.camera.y + this.camera.shake.y) + this.height/2)
             // this.ctx.scale(this.zoom, this.zoom)
 
             this.render(this)
@@ -190,6 +199,31 @@ class Game{
 
     setCursor(x){
         x ? this.cv.style.cursor = "default" : this.cv.style.cursor = "none"
+    }
+
+    shake(times = 250, intensity = 2.5, delay = 1){
+        let counter = 0;
+        this.shakeInterval = setInterval(() => {
+            this.camera.shake = {
+                x: 0 + randomFloatFromInterval(-intensity, intensity),
+                y: 0 + randomFloatFromInterval(-intensity, intensity)
+            }
+
+            counter++
+
+            if(counter === times) {
+                this.stopShake()
+            }
+        }, delay);
+    }
+
+    stopShake(){
+        if(this.shakeInterval) clearInterval(this.shakeInterval);
+        this.shakeInterval = null
+        this.camera.shake = {
+            x: 0,
+            y: 0
+        }
     }
 
     setSize(width, height){
@@ -234,6 +268,7 @@ class Game{
             object.scene = scene
             object.load(object)
         })
+        if(this.shakeInterval) this.stopShake();
     }
 
     changeScene(scene){
@@ -407,7 +442,32 @@ class Scene {
     updateListener(){
         Object.entries(this.gameObjects).forEach(([key, value]) => {
             const current = this.gameObjects[key]
-            if(current.active) current.update(current);
+
+            if(current.active) {
+
+                current.update(current);
+
+                Object.entries(this.gameObjects).forEach(([key2, value2]) => {
+                    const target = this.gameObjects[key2]
+
+                    if(current.id !== target.id){
+
+                        if(isCollide(current, target)){
+                            current.onCollide({current, target})
+                        }
+
+                        if(positionsMatch(current, target)){
+                            current.onPositionMatch({current, target})
+                        }
+
+                        if(isInside(current, target)){
+                            current.onInside({current, target})
+                        }
+
+                    }
+                })
+
+            }
         })
         this.update(this)
     }
@@ -482,6 +542,43 @@ class Scene {
         })
         this.touchMove({event: e, current: this});
     }
+    createGameObject(name, props){
+        const newGameObject = new GameObject(props)
+        newGameObject.keyName = name
+        newGameObject.scene = this
+        newGameObject.load(newGameObject)
+        this.gameObjects[name] = props
+        this.sortGameObjectsByLayer()
+        return this.gameObjects[name]
+    }
+
+    instantGameObject(props){
+        const name = uuidv4()
+        const newGameObject = new GameObject(props)
+        newGameObject.keyName = name
+        newGameObject.scene = this
+        newGameObject.load(newGameObject)
+        this.gameObjects[name] = newGameObject
+        this.sortGameObjectsByLayer()
+        return this.gameObjects[name]
+    }
+
+    removeGameObject(key){
+        delete this.gameObjects[key]
+    }
+
+    getGameObject(key){
+        return this.gameObjects[key]
+    }
+
+    getGameObjectByTag(tag){
+        let gameObjectsByTag = []
+        Object.entries(this.gameObjects).forEach(([key, value]) => {
+            const objectInstance = this.gameObjects[key]
+            if(objectInstance.tags.includes(tag)) gameObjectsByTag.push(objectInstance)
+        })
+        return gameObjectsByTag
+    }
 }
 
 class GameObject {
@@ -512,6 +609,9 @@ class GameObject {
         objectTouchStart = e => {},
         objectTouchEnd = e => {},
         objectTouchMove = e => {},
+        onCollide = e => {},
+        onInside = e => {},
+        onPositionMatch = e => {},
         load = () => {},
         update = () => {},
         render
@@ -533,6 +633,10 @@ class GameObject {
         this.objectTouchStart = objectTouchStart
         this.objectTouchEnd = objectTouchEnd
         this.objectTouchMove = objectTouchMove
+
+        this.onCollide = onCollide
+        this.onPositionMatch = onPositionMatch
+        this.onInside = onInside
 
         this.x = x
         this.y = y
