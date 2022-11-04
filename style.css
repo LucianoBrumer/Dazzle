@@ -212,7 +212,8 @@ main .title-container button::before{
 }
 
 main canvas {
-    min-width: 400;
+    min-width: 200;
+    width: 400;
     height: 250px;
     background: var(--main);
     background: linear-gradient(297deg, var(--main) 0%, var(--second) 100%);
