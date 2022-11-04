@@ -89,7 +89,7 @@ const Player2 = {
 }
 
 const game = new Game({
-    backgroundColor: '#333',
+    backgroundColor: '#111',
     fps: 60,
     cursor: false,
     width: 888,
