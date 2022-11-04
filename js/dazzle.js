@@ -742,6 +742,10 @@ function getDistance(a, b){
     return Math.sqrt(x * x + y * y)
 }
 
+const randomFloatInInterval = inter => Math.random() * (inter - (-inter)) + inter
+
+const randomIntInInterval = inter => Math.floor(Math.random() * (inter - (-inter) + 1) + inter)
+
 const randomFloatFromInterval = (min, max) => Math.random() * (max - min) + min
 
 const randomIntFromInterval = (min, max) => Math.floor(Math.random() * (max - min + 1) + min)
