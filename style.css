@@ -212,9 +212,9 @@ main .title-container button::before{
 }
 
 main canvas {
-    min-width: 200;
-    width: 400;
-    height: 250px;
+    width: 400px;
+    min-width: 100px;
+    aspect-ratio: 16/9;
     background: var(--main);
     background: linear-gradient(297deg, var(--main) 0%, var(--second) 100%);
 }
@@ -226,6 +226,10 @@ main canvas {
     }
     header h1 {
         display: none;
+    }
+
+    main canvas {
+        width: 80%;
     }
 }
 
