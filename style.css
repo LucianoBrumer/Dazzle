@@ -5,6 +5,9 @@
     --bg: #F8FAFC;
     --bg-dark:#010a0a;
     --text-alt: #F8FAFC;
+    --sm: 640px;
+    --md: 768px;
+    --lg: 1024px;
 }
 
 .game-container {
@@ -209,8 +212,33 @@ main .title-container button::before{
 }
 
 main canvas {
-    width: 400;
+    min-width: 400;
     height: 250px;
     background: var(--main);
     background: linear-gradient(297deg, var(--main) 0%, var(--second) 100%);
+}
+
+@media screen and (max-width: 640px){
+    header {
+        align-items: center;
+        justify-content: center;
+    }
+    header h1 {
+        display: none;
+    }
+}
+
+@media screen and (max-width: 768px){
+    main {
+        flex-direction: column;
+        gap: 0;
+    }
+
+    main .title-container-bottom {
+        align-items: center;
+    }
+}
+
+@media screen and (max-width: 1024px){
+
 }
