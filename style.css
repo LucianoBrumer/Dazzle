@@ -5,6 +5,7 @@
     --bg: #F8FAFC;
     --bg-dark:#010a0a;
     --text-alt: #F8FAFC;
+    --sponsor: rgb(255, 81, 81);
 }
 
 ::-webkit-scrollbar {
@@ -83,6 +84,14 @@ header nav a {
     position: relative;
 }
 
+header nav #sponsor {
+    color: var(--sponsor);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+}
+
 header nav a::before {
     content: '';
     position: absolute;
@@ -101,6 +110,26 @@ header nav a::before {
 header nav a:hover::before{
     width: 100%;
 }
+
+header nav #sponsor::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 1.25px;
+    background-color: var(--sponsor);
+    width: 0;
+    transition: width .3s ease-in-out;
+    -webkit-transition: width .3s ease-in-out;
+    -moz-transition: width .3s ease-in-out;
+    -ms-transition: width .3s ease-in-out;
+    -o-transition: width .3s ease-in-out;
+}
+
+header nav #sponsor:hover::before{
+    width: 100%;
+}
+
 
 #top {
     position: fixed;
